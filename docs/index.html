@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="家务记录">
+<link rel="manifest" href="manifest.json">
+<title>家务记录</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --primary: #5B6ABF;
+  --primary-light: #E8EAFF;
+  --accent-a: #F06292;
+  --accent-b: #42A5F5;
+  --bg: #F5F5FA;
+  --card: #FFFFFF;
+  --text: #2D2D3A;
+  --text-light: #8888A0;
+  --border: #E0E0EC;
+  --radius: 12px;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 80px;
+}
+.header {
+  background: var(--primary);
+  color: white;
+  padding: 16px 20px;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.tab-bar {
+  display: flex;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  z-index: 100;
+}
+.tab-bar button {
+  flex: 1;
+  padding: 10px 0;
+  border: none;
+  background: none;
+  font-size: 13px;
+  color: var(--text-light);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.tab-bar button.active { color: var(--primary); font-weight: 600; }
+.tab-bar button svg { width: 22px; height: 22px; }
+.page { display: none; padding: 16px; max-width: 480px; margin: 0 auto; }
+.page.active { display: block; }
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.card h3 { font-size: 15px; margin-bottom: 12px; color: var(--text); }
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.form-row label { font-size: 14px; color: var(--text-light); white-space: nowrap; min-width: 40px; }
+.form-row input, .form-row select {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+  background: var(--bg);
+  color: var(--text);
+}
+.person-toggle {
+  display: flex;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+.person-toggle button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--bg);
+  color: var(--text-light);
+  transition: all 0.2s;
+}
+.person-toggle button.active-a { background: var(--accent-a); color: white; }
+.person-toggle button.active-b { background: var(--accent-b); color: white; }
+.chore-input-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+.chore-input-row input[type="text"] {
+  flex: 2;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--bg);
+}
+.chore-input-row input[type="number"] {
+  flex: 1;
+  padding: 10px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--bg);
+  max-width: 80px;
+  text-align: center;
+}
+.chore-input-row .unit { font-size: 13px; color: var(--text-light); white-space: nowrap; }
+.btn-remove {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: #fee;
+  color: #e55;
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.btn-add {
+  width: 100%;
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: none;
+  color: var(--primary);
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 4px;
+}
+.btn-save {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+.btn-save:active { opacity: 0.85; }
+.saved-list { list-style: none; }
+.saved-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.saved-item:last-child { border-bottom: none; }
+.saved-item .chore-name { flex: 1; }
+.saved-item .chore-time { color: var(--primary); font-weight: 500; white-space: nowrap; }
+.person-section { margin-bottom: 16px; }
+.person-label {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 8px;
+}
+.person-label.a { background: var(--accent-a); }
+.person-label.b { background: var(--accent-b); }
+.stat-period {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.stat-period button {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--text-light);
+}
+.stat-period button.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+.stat-summary {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.stat-box {
+  flex: 1;
+  text-align: center;
+  padding: 16px 8px;
+  border-radius: var(--radius);
+}
+.stat-box.a { background: #FDE8EF; }
+.stat-box.b { background: #E3F2FD; }
+.stat-box .stat-label { font-size: 13px; color: var(--text-light); margin-bottom: 4px; }
+.stat-box .stat-value { font-size: 24px; font-weight: 700; }
+.stat-box.a .stat-value { color: var(--accent-a); }
+.stat-box.b .stat-value { color: var(--accent-b); }
+.stat-box .stat-unit { font-size: 12px; color: var(--text-light); }
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.bar-row .bar-label { min-width: 70px; color: var(--text-light); text-align: right; }
+.bar-container { flex: 1; height: 20px; background: var(--bg); border-radius: 10px; overflow: hidden; display: flex; }
+.bar-a { background: var(--accent-a); height: 100%; transition: width 0.3s; }
+.bar-b { background: var(--accent-b); height: 100%; transition: width 0.3s; }
+.bar-row .bar-time { min-width: 50px; font-size: 12px; color: var(--text-light); }
+.empty-msg { text-align: center; color: var(--text-light); padding: 40px 20px; font-size: 14px; }
+.day-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.day-nav button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--card);
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--text);
+}
+.day-nav .day-label { font-size: 15px; font-weight: 500; min-width: 120px; text-align: center; }
+.delete-entry {
+  background: none;
+  border: none;
+  color: #ccc;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.delete-entry:hover { color: #e55; }
+.settings-section { margin-bottom: 16px; }
+.settings-section h3 { font-size: 15px; margin-bottom: 10px; }
+.name-input-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+.name-input-row label { font-size: 14px; min-width: 50px; color: var(--text-light); }
+.name-input-row input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+  background: var(--bg);
+}
+.btn-secondary {
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+}
+.btn-danger {
+  padding: 10px 16px;
+  border: 1px solid #e55;
+  border-radius: 8px;
+  background: #fee;
+  color: #e55;
+  font-size: 14px;
+  cursor: pointer;
+}
+.toast {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  z-index: 200;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+.preset-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.preset-chip {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg);
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text);
+}
+.preset-chip:active { background: var(--primary-light); }
+</style>
+</head>
+<body>
+
+<div class="header">家务记录</div>
+<div id="toast" class="toast"></div>
+
+<!-- 录入页面 -->
+<div id="page-input" class="page active">
+  <div class="card">
+    <div class="form-row">
+      <label>日期</label>
+      <input type="date" id="input-date">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="person-toggle" id="person-toggle">
+      <button id="btn-person-a" class="active-a" onclick="switchPerson('a')">我</button>
+      <button id="btn-person-b" onclick="switchPerson('b')">队友</button>
+    </div>
+
+    <div id="preset-area" class="preset-chips"></div>
+
+    <div id="chore-list-a">
+      <div class="chore-input-row">
+        <input type="text" placeholder="家务名称" class="chore-name-input">
+        <input type="number" placeholder="0" min="0" class="chore-time-input">
+        <span class="unit">分钟</span>
+        <button class="btn-remove" onclick="removeChoreRow(this)">&times;</button>
+      </div>
+    </div>
+    <div id="chore-list-b" style="display:none">
+      <div class="chore-input-row">
+        <input type="text" placeholder="家务名称" class="chore-name-input">
+        <input type="number" placeholder="0" min="0" class="chore-time-input">
+        <span class="unit">分钟</span>
+        <button class="btn-remove" onclick="removeChoreRow(this)">&times;</button>
+      </div>
+    </div>
+
+    <button class="btn-add" onclick="addChoreRow()">+ 添加一项</button>
+  </div>
+
+  <button class="btn-save" onclick="saveEntry()">保存记录</button>
+</div>
+
+<!-- 历史页面 -->
+<div id="page-history" class="page">
+  <div class="day-nav">
+    <button onclick="navDay(-1)">&lt;</button>
+    <span class="day-label" id="history-date-label"></span>
+    <button onclick="navDay(1)">&gt;</button>
+  </div>
+  <div id="history-content"></div>
+</div>
+
+<!-- 统计页面 -->
+<div id="page-stats" class="page">
+  <div class="stat-period" id="stat-period">
+    <button class="active" onclick="switchPeriod('week', this)">本周</button>
+    <button onclick="switchPeriod('month', this)">本月</button>
+    <button onclick="switchPeriod('all', this)">全部</button>
+  </div>
+  <div id="stats-content"></div>
+</div>
+
+<!-- 设置页面 -->
+<div id="page-settings" class="page">
+  <div class="card settings-section">
+    <h3>名称设置</h3>
+    <div class="name-input-row">
+      <label>我</label>
+      <input type="text" id="name-a" placeholder="我的名字">
+    </div>
+    <div class="name-input-row">
+      <label>队友</label>
+      <input type="text" id="name-b" placeholder="队友的名字">
+    </div>
+    <button class="btn-secondary" onclick="saveNames()" style="width:100%;margin-top:8px;">保存名称</button>
+  </div>
+  <div class="card settings-section">
+    <h3>常用家务</h3>
+    <p style="font-size:13px;color:var(--text-light);margin-bottom:8px;">添加常用家务，录入时可快速选择</p>
+    <div id="preset-list"></div>
+    <div class="chore-input-row" style="margin-top:8px;">
+      <input type="text" id="new-preset" placeholder="添加常用家务名称" style="flex:1">
+      <button class="btn-secondary" onclick="addPreset()">添加</button>
+    </div>
+  </div>
+  <div class="card settings-section">
+    <h3>数据管理</h3>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-secondary" onclick="exportData()">导出数据</button>
+      <button class="btn-secondary" onclick="document.getElementById('import-file').click()">导入数据</button>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+    </div>
+    <button class="btn-danger" onclick="clearAllData()" style="width:100%;margin-top:10px;">清除所有数据</button>
+  </div>
+</div>
+
+<!-- 底部导航 -->
+<div class="tab-bar">
+  <button class="active" onclick="switchTab('input', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+    录入
+  </button>
+  <button onclick="switchTab('history', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    历史
+  </button>
+  <button onclick="switchTab('stats', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+    统计
+  </button>
+  <button onclick="switchTab('settings', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+    设置
+  </button>
+</div>
+
+<script>
+// --- Data Layer ---
+const STORAGE_KEY = 'chore_tracker_data';
+const NAMES_KEY = 'chore_tracker_names';
+const PRESETS_KEY = 'chore_tracker_presets';
+
+function loadEntries() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+function saveEntries(entries) { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }
+
+function getNames() {
+  try { return JSON.parse(localStorage.getItem(NAMES_KEY)) || { a: '我', b: '队友' }; }
+  catch { return { a: '我', b: '队友' }; }
+}
+function setNames(names) { localStorage.setItem(NAMES_KEY, JSON.stringify(names)); }
+
+function getPresets() {
+  try { return JSON.parse(localStorage.getItem(PRESETS_KEY)) || ['做饭', '洗碗', '拖地', '洗衣服', '打扫卫生', '买菜', '倒垃圾']; }
+  catch { return []; }
+}
+function setPresets(p) { localStorage.setItem(PRESETS_KEY, JSON.stringify(p)); }
+
+// --- State ---
+let currentPerson = 'a';
+let historyDate = new Date();
+let statPeriod = 'week';
+
+// --- Init ---
+function init() {
+  document.getElementById('input-date').value = todayStr();
+  renderPresets();
+  renderPresetChips();
+  const names = getNames();
+  document.getElementById('name-a').value = names.a;
+  document.getElementById('name-b').value = names.b;
+  updatePersonLabels();
+}
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function formatDate(str) {
+  const [y, m, d] = str.split('-');
+  return `${y}年${parseInt(m)}月${parseInt(d)}日`;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// --- Tabs ---
+function switchTab(tab, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  btn.classList.add('active');
+  if (tab === 'history') renderHistory();
+  if (tab === 'stats') renderStats();
+  if (tab === 'settings') {
+    const names = getNames();
+    document.getElementById('name-a').value = names.a;
+    document.getElementById('name-b').value = names.b;
+    renderPresets();
+  }
+}
+
+// --- Person Toggle ---
+function switchPerson(p) {
+  currentPerson = p;
+  document.getElementById('btn-person-a').className = p === 'a' ? 'active-a' : '';
+  document.getElementById('btn-person-b').className = p === 'b' ? 'active-b' : '';
+  document.getElementById('chore-list-a').style.display = p === 'a' ? 'block' : 'none';
+  document.getElementById('chore-list-b').style.display = p === 'b' ? 'block' : 'none';
+}
+
+function updatePersonLabels() {
+  const names = getNames();
+  document.getElementById('btn-person-a').textContent = names.a;
+  document.getElementById('btn-person-b').textContent = names.b;
+}
+
+// --- Chore Rows ---
+function addChoreRow(name) {
+  const list = document.getElementById('chore-list-' + currentPerson);
+  const row = document.createElement('div');
+  row.className = 'chore-input-row';
+  row.innerHTML = `
+    <input type="text" placeholder="家务名称" class="chore-name-input" value="${name || ''}">
+    <input type="number" placeholder="0" min="0" class="chore-time-input">
+    <span class="unit">分钟</span>
+    <button class="btn-remove" onclick="removeChoreRow(this)">&times;</button>
+  `;
+  list.appendChild(row);
+  if (!name) row.querySelector('.chore-name-input').focus();
+}
+
+function removeChoreRow(btn) {
+  const list = btn.closest('[id^="chore-list-"]');
+  if (list.children.length > 1) {
+    btn.parentElement.remove();
+  } else {
+    const inputs = btn.parentElement.querySelectorAll('input');
+    inputs.forEach(i => i.value = '');
+  }
+}
+
+// --- Preset Chips ---
+function renderPresetChips() {
+  const area = document.getElementById('preset-area');
+  const presets = getPresets();
+  area.innerHTML = presets.map(p =>
+    `<span class="preset-chip" onclick="addChoreWithPreset('${p}')">${p}</span>`
+  ).join('');
+}
+
+function addChoreWithPreset(name) {
+  const list = document.getElementById('chore-list-' + currentPerson);
+  const rows = list.querySelectorAll('.chore-input-row');
+  const lastRow = rows[rows.length - 1];
+  const lastNameInput = lastRow.querySelector('.chore-name-input');
+  if (lastNameInput.value === '') {
+    lastNameInput.value = name;
+    lastRow.querySelector('.chore-time-input').focus();
+  } else {
+    addChoreRow(name);
+    const newRows = list.querySelectorAll('.chore-input-row');
+    newRows[newRows.length - 1].querySelector('.chore-time-input').focus();
+  }
+}
+
+// --- Save ---
+function saveEntry() {
+  const date = document.getElementById('input-date').value;
+  if (!date) { showToast('请选择日期'); return; }
+
+  const entries = loadEntries();
+  // Collect chores for both persons
+  ['a', 'b'].forEach(person => {
+    const list = document.getElementById('chore-list-' + person);
+    const rows = list.querySelectorAll('.chore-input-row');
+    rows.forEach(row => {
+      const name = row.querySelector('.chore-name-input').value.trim();
+      const time = parseInt(row.querySelector('.chore-time-input').value) || 0;
+      if (name && time > 0) {
+        entries.push({ date, person, chore: name, minutes: time, id: Date.now() + Math.random() });
+      }
+    });
+  });
+
+  saveEntries(entries);
+
+  // Reset form
+  ['a', 'b'].forEach(person => {
+    const list = document.getElementById('chore-list-' + person);
+    list.innerHTML = `
+      <div class="chore-input-row">
+        <input type="text" placeholder="家务名称" class="chore-name-input">
+        <input type="number" placeholder="0" min="0" class="chore-time-input">
+        <span class="unit">分钟</span>
+        <button class="btn-remove" onclick="removeChoreRow(this)">&times;</button>
+      </div>
+    `;
+  });
+
+  showToast('已保存');
+}
+
+// --- History ---
+function navDay(delta) {
+  historyDate.setDate(historyDate.getDate() + delta);
+  renderHistory();
+}
+
+function renderHistory() {
+  const dateStr = historyDate.getFullYear() + '-' +
+    String(historyDate.getMonth()+1).padStart(2,'0') + '-' +
+    String(historyDate.getDate()).padStart(2,'0');
+  document.getElementById('history-date-label').textContent = formatDate(dateStr);
+
+  const entries = loadEntries().filter(e => e.date === dateStr);
+  const container = document.getElementById('history-content');
+  const names = getNames();
+
+  if (entries.length === 0) {
+    container.innerHTML = '<div class="empty-msg">这一天还没有记录</div>';
+    return;
+  }
+
+  let html = '';
+  ['a', 'b'].forEach(person => {
+    const items = entries.filter(e => e.person === person);
+    if (items.length === 0) return;
+    const total = items.reduce((s, e) => s + e.minutes, 0);
+    html += `<div class="card">
+      <div class="person-section">
+        <span class="person-label ${person}">${names[person]}</span>
+        <span style="font-size:13px;color:var(--text-light);margin-left:8px;">共 ${formatMinutes(total)}</span>
+        <ul class="saved-list">
+          ${items.map(e => `
+            <li class="saved-item">
+              <span class="chore-name">${e.chore}</span>
+              <span class="chore-time">${e.minutes} 分钟</span>
+              <button class="delete-entry" onclick="deleteEntry(${e.id})">&times;</button>
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function deleteEntry(id) {
+  let entries = loadEntries().filter(e => e.id !== id);
+  saveEntries(entries);
+  renderHistory();
+  showToast('已删除');
+}
+
+// --- Stats ---
+function switchPeriod(period, btn) {
+  statPeriod = period;
+  document.querySelectorAll('#stat-period button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderStats();
+}
+
+function renderStats() {
+  const entries = loadEntries();
+  const names = getNames();
+  const now = new Date();
+  let filtered;
+
+  if (statPeriod === 'week') {
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    filtered = entries.filter(e => new Date(e.date) >= startOfWeek);
+  } else if (statPeriod === 'month') {
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    filtered = entries.filter(e => new Date(e.date) >= startOfMonth);
+  } else {
+    filtered = entries;
+  }
+
+  const container = document.getElementById('stats-content');
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-msg">暂无数据</div>';
+    return;
+  }
+
+  const totalA = filtered.filter(e => e.person === 'a').reduce((s, e) => s + e.minutes, 0);
+  const totalB = filtered.filter(e => e.person === 'b').reduce((s, e) => s + e.minutes, 0);
+  const total = totalA + totalB || 1;
+
+  // Group by chore type
+  const choreMap = {};
+  filtered.forEach(e => {
+    if (!choreMap[e.chore]) choreMap[e.chore] = { a: 0, b: 0 };
+    choreMap[e.chore][e.person] += e.minutes;
+  });
+  const choreSorted = Object.entries(choreMap).sort((a, b) => (b[1].a + b[1].b) - (a[1].a + a[1].b));
+
+  // Group by day
+  const dayMap = {};
+  filtered.forEach(e => {
+    if (!dayMap[e.date]) dayMap[e.date] = { a: 0, b: 0 };
+    dayMap[e.date][e.person] += e.minutes;
+  });
+  const daySorted = Object.keys(dayMap).sort();
+
+  let html = `
+    <div class="stat-summary">
+      <div class="stat-box a">
+        <div class="stat-label">${names.a}</div>
+        <div class="stat-value">${formatMinutes(totalA)}</div>
+        <div class="stat-unit">${Math.round(totalA / total * 100)}%</div>
+      </div>
+      <div class="stat-box b">
+        <div class="stat-label">${names.b}</div>
+        <div class="stat-value">${formatMinutes(totalB)}</div>
+        <div class="stat-unit">${Math.round(totalB / total * 100)}%</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>按家务分类</h3>
+      ${choreSorted.map(([name, v]) => {
+        const t = v.a + v.b || 1;
+        return `<div class="bar-row">
+          <span class="bar-label">${name}</span>
+          <div class="bar-container">
+            <div class="bar-a" style="width:${v.a/t*100}%"></div>
+            <div class="bar-b" style="width:${v.b/t*100}%"></div>
+          </div>
+          <span class="bar-time">${v.a + v.b}m</span>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="card">
+      <h3>每日趋势</h3>
+      ${daySorted.map(date => {
+        const v = dayMap[date];
+        const maxDay = Math.max(...Object.values(dayMap).map(d => d.a + d.b)) || 1;
+        const t = v.a + v.b;
+        return `<div class="bar-row">
+          <span class="bar-label">${date.slice(5)}</span>
+          <div class="bar-container">
+            <div class="bar-a" style="width:${v.a/maxDay*100}%"></div>
+            <div class="bar-b" style="width:${v.b/maxDay*100}%"></div>
+          </div>
+          <span class="bar-time">${t}m</span>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+  container.innerHTML = html;
+}
+
+function formatMinutes(m) {
+  if (m < 60) return m + '分钟';
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return r > 0 ? `${h}小时${r}分` : `${h}小时`;
+}
+
+// --- Settings ---
+function saveNames() {
+  const a = document.getElementById('name-a').value.trim() || '我';
+  const b = document.getElementById('name-b').value.trim() || '队友';
+  setNames({ a, b });
+  updatePersonLabels();
+  showToast('名称已保存');
+}
+
+function renderPresets() {
+  const presets = getPresets();
+  const container = document.getElementById('preset-list');
+  container.innerHTML = presets.map((p, i) =>
+    `<div class="chore-input-row">
+      <input type="text" value="${p}" style="flex:1" readonly>
+      <button class="btn-remove" onclick="removePreset(${i})">&times;</button>
+    </div>`
+  ).join('');
+}
+
+function addPreset() {
+  const input = document.getElementById('new-preset');
+  const name = input.value.trim();
+  if (!name) return;
+  const presets = getPresets();
+  if (!presets.includes(name)) {
+    presets.push(name);
+    setPresets(presets);
+    renderPresets();
+    renderPresetChips();
+  }
+  input.value = '';
+  showToast('已添加');
+}
+
+function removePreset(i) {
+  const presets = getPresets();
+  presets.splice(i, 1);
+  setPresets(presets);
+  renderPresets();
+  renderPresetChips();
+}
+
+function exportData() {
+  const data = {
+    entries: loadEntries(),
+    names: getNames(),
+    presets: getPresets(),
+    exportDate: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '家务记录_' + todayStr() + '.json';
+  a.click();
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.entries) saveEntries(data.entries);
+      if (data.names) setNames(data.names);
+      if (data.presets) setPresets(data.presets);
+      init();
+      showToast('导入成功');
+    } catch {
+      showToast('导入失败：文件格式错误');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function clearAllData() {
+  if (confirm('确定要清除所有数据吗？此操作不可恢复。')) {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(NAMES_KEY);
+    localStorage.removeItem(PRESETS_KEY);
+    init();
+    showToast('数据已清除');
+  }
+}
+
+// --- Start ---
+init();
+</script>
+</body>
+</html>
